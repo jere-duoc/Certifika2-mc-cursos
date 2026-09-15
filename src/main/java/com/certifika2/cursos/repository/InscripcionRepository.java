@@ -10,7 +10,7 @@ import java.util.Optional;
 @Repository
 public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> {
     List<Inscripcion> findByIdCurso(Long idCurso);
-    List<Inscripcion> findByIdUsuario(Long idUsuario);
-    Optional<Inscripcion> findByIdCursoAndIdUsuario(Long idCurso, Long idUsuario);
+    List<Inscripcion> findByIdUsuario(String idUsuario);
+    Optional<Inscripcion> findByIdCursoAndIdUsuario(Long idCurso, String idUsuario);
 }
 

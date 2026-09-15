@@ -18,7 +18,7 @@ public class Inscripcion {
     private Long idCurso;
 
     @Column(nullable = false)
-    private Long idUsuario;
+    private String idUsuario; // `sub` estable del usuario en Cognito
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaInscripcion;

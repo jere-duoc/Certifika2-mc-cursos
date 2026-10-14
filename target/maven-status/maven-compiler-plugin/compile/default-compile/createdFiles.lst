@@ -1,0 +1,5 @@
+com\certifika2\cursos\dto\AnuncioEvent.class
+com\certifika2\cursos\service\AnuncioProducerService.class
+com\certifika2\cursos\repository\AnuncioCursoRepository.class
+com\certifika2\cursos\controller\CursoController$AnuncioRequest.class
+com\certifika2\cursos\model\AnuncioCurso.class

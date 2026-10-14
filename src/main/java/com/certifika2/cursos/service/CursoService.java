@@ -12,6 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Date;
+import com.certifika2.cursos.dto.AnuncioEvent;
+import com.certifika2.cursos.model.AnuncioCurso;
+import com.certifika2.cursos.repository.AnuncioCursoRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -23,6 +27,8 @@ public class CursoService {
     private final CursoRepository cursoRepository;
     private final InscripcionRepository inscripcionRepository;
     private final MaterialCursoRepository materialCursoRepository;
+    private final AnuncioCursoRepository anuncioCursoRepository;
+    private final AnuncioProducerService anuncioProducerService;
 
     public Curso crearCurso(Curso curso, String idProfesor) {
         String codigo = curso.getCodigo() == null ? "" : curso.getCodigo().trim().toLowerCase();
@@ -114,5 +120,54 @@ public class CursoService {
         material.setUrl(urlLimpia);
         return materialCursoRepository.save(material);
     }
+
+    public AnuncioCurso publicarAnuncio(
+            String codigo,
+            String idUsuario,
+            boolean esAdmin,
+            String nombreProfesor,
+            String titulo,
+            String contenido) {
+        Curso curso = obtenerCursoPorCodigo(codigo);
+        if (!esAdmin && !Objects.equals(curso.getIdProfesor(), idUsuario)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el profesor asignado al curso o un administrador pueden publicar anuncios");
+        }
+        String tituloLimpio = titulo == null ? "" : titulo.trim();
+        String contenidoLimpio = contenido == null ? "" : contenido.trim();
+        if (tituloLimpio.isBlank() || contenidoLimpio.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Título y contenido del anuncio son obligatorios");
+        }
+
+        AnuncioCurso anuncio = new AnuncioCurso();
+        anuncio.setIdCurso(curso.getIdCurso());
+        anuncio.setCodigoCurso(curso.getCodigo());
+        anuncio.setTitulo(tituloLimpio);
+        anuncio.setContenido(contenidoLimpio);
+        anuncio.setIdProfesor(idUsuario);
+        anuncio.setNombreProfesor(nombreProfesor);
+        anuncio.setFechaCreacion(LocalDateTime.now());
+
+        AnuncioCurso guardado = anuncioCursoRepository.save(anuncio);
+
+        // Despachar evento a la cola Amazon SQS
+        AnuncioEvent evento = new AnuncioEvent(
+                curso.getIdCurso(),
+                curso.getCodigo(),
+                guardado.getTitulo(),
+                guardado.getContenido(),
+                idUsuario,
+                nombreProfesor,
+                guardado.getFechaCreacion()
+        );
+        anuncioProducerService.publicarAnuncio(evento);
+
+        return guardado;
+    }
+
+    public List<AnuncioCurso> listarAnuncios(String codigo) {
+        Curso curso = obtenerCursoPorCodigo(codigo);
+        return anuncioCursoRepository.findByCodigoCursoOrderByFechaCreacionDesc(curso.getCodigo());
+    }
 }
+
 

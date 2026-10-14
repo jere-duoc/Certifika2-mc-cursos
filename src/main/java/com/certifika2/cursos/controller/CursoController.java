@@ -1,10 +1,12 @@
 package com.certifika2.cursos.controller;
 
+import com.certifika2.cursos.model.AnuncioCurso;
 import com.certifika2.cursos.model.Curso;
 import com.certifika2.cursos.model.Inscripcion;
 import com.certifika2.cursos.model.MaterialCurso;
 import com.certifika2.cursos.service.CursoService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -91,5 +93,47 @@ public class CursoController {
     }
 
     public record MaterialRequest(String titulo, String tipo, String url) {}
+
+    @GetMapping("/codigo/{codigo}/anuncios")
+    public ResponseEntity<List<AnuncioCurso>> listarAnuncios(@PathVariable String codigo) {
+        return ResponseEntity.ok(cursoService.listarAnuncios(codigo));
+    }
+
+    @PostMapping("/codigo/{codigo}/anuncios")
+    @PreAuthorize("hasAnyRole('PROFESOR', 'ADMIN')")
+    public ResponseEntity<AnuncioCurso> publicarAnuncio(
+            @PathVariable String codigo,
+            @RequestBody AnuncioRequest request,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestHeader(name = "X-OIDC-Display-Name", required = false) String displayName) {
+        List<String> grupos = jwt.getClaimAsStringList("cognito:groups");
+        boolean esAdmin = grupos != null && grupos.contains("ADMIN");
+        String nombreProfesor = firstNonBlank(
+                displayName,
+                jwt.getClaimAsString("name"),
+                jwt.getClaimAsString("email"),
+                jwt.getClaimAsString("username"),
+                "Profesor");
+
+        AnuncioCurso creado = cursoService.publicarAnuncio(
+                codigo,
+                jwt.getSubject(),
+                esAdmin,
+                nombreProfesor,
+                request.titulo(),
+                request.contenido()
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+    }
+
+    public record AnuncioRequest(String titulo, String contenido) {}
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value;
+        }
+        return "Profesor";
+    }
 }
+
 

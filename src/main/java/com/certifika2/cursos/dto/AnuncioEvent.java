@@ -11,5 +11,8 @@ public record AnuncioEvent(
         String idProfesor,
         String nombreProfesor,
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-        LocalDateTime fechaCreacion
+        LocalDateTime fechaCreacion,
+        String eventoId,
+        String tipoEvento,
+        java.util.List<String> destinatarios
 ) {}

@@ -37,6 +37,10 @@ cognito:
   client-id: ${COGNITO_CLIENT_ID:1rf3bts7p2klg1qvsjhqnb5o3n}
 
 app:
+  certificados:
+    enabled: ${CERTIFICADOS_ENABLED:false}
+    stream: ${KINESIS_CERTIFICADOS_STREAM:}
+    kinesis-endpoint: ${KINESIS_ENDPOINT:}
   sqs:
     queue-anuncios: ${SQS_QUEUE_ANUNCIOS:certifika2-anuncios-queue}
 

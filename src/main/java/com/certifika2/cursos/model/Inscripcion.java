@@ -24,5 +24,9 @@ public class Inscripcion {
     private Date fechaInscripcion;
 
     private Boolean estaInscrito;
+
+    // Completion is approved by the course owner or an administrator, never by requesting a file.
+    private java.time.Instant fechaCompletado;
+    private String completadoPor;
 }
 

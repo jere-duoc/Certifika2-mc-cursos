@@ -69,9 +69,8 @@ public class CursoController {
     @PostMapping("/{idCurso}/upload")
     @PreAuthorize("hasAnyRole('PROFESOR', 'ADMIN')")
     public ResponseEntity<String> subirMaterial(@PathVariable Long idCurso, @RequestParam("file") MultipartFile file) {
-        // Lógica para guardar el archivo (S3 o Local)
-        // Por ahora simulamos que se subió exitosamente
-        return ResponseEntity.ok("Archivo " + file.getOriginalFilename() + " subido exitosamente al curso " + idCurso);
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                .body("La carga binaria de materiales aun no esta configurada. Registra una URL en /materiales.");
     }
 
     @GetMapping("/codigo/{codigo}/materiales")

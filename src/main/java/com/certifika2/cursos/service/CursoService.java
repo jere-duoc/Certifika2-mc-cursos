@@ -95,6 +95,7 @@ public class CursoService {
         return materialCursoRepository.findByIdCursoOrderByFechaCreacionAsc(curso.getIdCurso());
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public MaterialCurso agregarMaterial(
             String codigo,
             String idUsuario,
@@ -118,9 +119,16 @@ public class CursoService {
         material.setTitulo(tituloLimpio);
         material.setTipo(tipoLimpio);
         material.setUrl(urlLimpia);
-        return materialCursoRepository.save(material);
+        MaterialCurso guardado = materialCursoRepository.save(material);
+        anuncioProducerService.publicarAnuncio(new AnuncioEvent(
+                curso.getIdCurso(), curso.getCodigo(), tituloLimpio,
+                "Nuevo material (" + tipoLimpio + "): " + tituloLimpio,
+                idUsuario, "Profesor", guardado.getFechaCreacion(),
+                java.util.UUID.randomUUID().toString(), "MATERIAL", destinatarios(curso.getIdCurso())));
+        return guardado;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public AnuncioCurso publicarAnuncio(
             String codigo,
             String idUsuario,
@@ -157,7 +165,8 @@ public class CursoService {
                 guardado.getContenido(),
                 idUsuario,
                 nombreProfesor,
-                guardado.getFechaCreacion()
+                guardado.getFechaCreacion(),
+                java.util.UUID.randomUUID().toString(), "ANUNCIO", destinatarios(curso.getIdCurso())
         );
         anuncioProducerService.publicarAnuncio(evento);
 
@@ -167,6 +176,13 @@ public class CursoService {
     public List<AnuncioCurso> listarAnuncios(String codigo) {
         Curso curso = obtenerCursoPorCodigo(codigo);
         return anuncioCursoRepository.findByCodigoCursoOrderByFechaCreacionDesc(curso.getCodigo());
+    }
+
+    private List<String> destinatarios(Long idCurso) {
+        return inscripcionRepository.findByIdCurso(idCurso).stream()
+                .filter(i -> Boolean.TRUE.equals(i.getEstaInscrito()))
+                .map(Inscripcion::getIdUsuario)
+                .filter(id -> id != null && !id.isBlank()).distinct().toList();
     }
 }
 

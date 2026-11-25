@@ -28,3 +28,13 @@ spring:
 
 cognito:
   client-id: ${COGNITO_CLIENT_ID:1rf3bts7p2klg1qvsjhqnb5o3n}
+
+# --- Streaming de certificados (Kinesis) ---
+certifika2:
+  aws:
+    region: ${AWS_REGION:us-east-1}
+    # Vacío = AWS real (credenciales por DefaultCredentialsProvider / rol de la instancia).
+    # http://localhost:4566 = LocalStack (ver infra/docker-compose.yml).
+    endpoint: ${AWS_ENDPOINT:http://localhost:4566}
+  kinesis:
+    stream-solicitudes: ${KINESIS_STREAM_SOLICITUDES:certifika2-certificados-solicitados}

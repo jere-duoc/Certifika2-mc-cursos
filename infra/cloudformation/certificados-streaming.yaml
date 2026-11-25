@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Certifika2 - Streaming de certificados. Kinesis Data Stream de solicitudes,
+  stream DLQ, buckets S3 y dos delivery streams de Kinesis Data Firehose.
+
+Parameters:
+  Prefijo:
+    Type: String
+    Default: certifika2
+    Description: Prefijo para nombrar los recursos.
+  ShardCount:
+    Type: Number
+    Default: 2
+    MinValue: 1
+    Description: Shards del stream de solicitudes (1 shard = 1 MB/s o 1000 registros/s de escritura).
+  RetencionHoras:
+    Type: Number
+    Default: 48
+    MinValue: 24
+    MaxValue: 8760
+  FirehoseRoleArn:
+    Type: String
+    Default: ""
+    Description: >
+      ARN de un rol existente para Firehose (ej. LabRole en AWS Academy, donde no se
+      pueden crear roles). Si se deja vacío, la plantilla crea el rol.
+
+Conditions:
+  CrearRol: !Equals [!Ref FirehoseRoleArn, ""]
+
+Resources:
+  SolicitudesStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub "${Prefijo}-certificados-solicitados"
+      ShardCount: !Ref ShardCount
+      RetentionPeriodHours: !Ref RetencionHoras
+      StreamEncryption:
+        EncryptionType: KMS
+        KeyId: alias/aws/kinesis
+
+  DlqStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub "${Prefijo}-certificados-dlq"
+      ShardCount: 1
+      RetentionPeriodHours: 168
+
+  CertificadosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Prefijo}-certificados-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  AnalyticsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${Prefijo}-analytics-${AWS::AccountId}"
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpirarErrores
+            Status: Enabled
+            Prefix: errores/
+            ExpirationInDays: 30
+
+  FirehoseRole:
+    Type: AWS::IAM::Role
+    Condition: CrearRol
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: firehose.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: firehose-certificados
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:DescribeStreamSummary
+                  - kinesis:GetShardIterator
+                  - kinesis:GetRecords
+                  - kinesis:ListShards
+                Resource: !GetAtt SolicitudesStream.Arn
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt AnalyticsBucket.Arn
+                  - !Sub "${AnalyticsBucket.Arn}/*"
+
+  # Firehose 1: archiva TODAS las solicitudes leyendo directamente del Kinesis Data Stream.
+  SolicitudesArchivoFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub "${Prefijo}-solicitudes-archivo"
+      DeliveryStreamType: KinesisStreamAsSource
+      KinesisStreamSourceConfiguration:
+        KinesisStreamARN: !GetAtt SolicitudesStream.Arn
+        RoleARN: !If [CrearRol, !GetAtt FirehoseRole.Arn, !Ref FirehoseRoleArn]
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !GetAtt AnalyticsBucket.Arn
+        RoleARN: !If [CrearRol, !GetAtt FirehoseRole.Arn, !Ref FirehoseRoleArn]
+        Prefix: "solicitudes/anio=!{timestamp:yyyy}/mes=!{timestamp:MM}/dia=!{timestamp:dd}/"
+        ErrorOutputPrefix: "errores/solicitudes/!{firehose:error-output-type}/"
+        BufferingHints:
+          SizeInMBs: 5
+          IntervalInSeconds: 60
+        CompressionFormat: GZIP
+
+  # Firehose 2: recibe por DirectPut los eventos de certificados ya emitidos (ms-usuarios).
+  EmitidosFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: !Sub "${Prefijo}-certificados-emitidos"
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !GetAtt AnalyticsBucket.Arn
+        RoleARN: !If [CrearRol, !GetAtt FirehoseRole.Arn, !Ref FirehoseRoleArn]
+        Prefix: "emitidos/anio=!{timestamp:yyyy}/mes=!{timestamp:MM}/dia=!{timestamp:dd}/"
+        ErrorOutputPrefix: "errores/emitidos/!{firehose:error-output-type}/"
+        BufferingHints:
+          SizeInMBs: 5
+          IntervalInSeconds: 60
+        CompressionFormat: GZIP
+
+Outputs:
+  SolicitudesStreamName:
+    Value: !Ref SolicitudesStream
+  DlqStreamName:
+    Value: !Ref DlqStream
+  CertificadosBucketName:
+    Value: !Ref CertificadosBucket
+  AnalyticsBucketName:
+    Value: !Ref AnalyticsBucket
+  EmitidosFirehoseName:
+    Value: !Ref EmitidosFirehose

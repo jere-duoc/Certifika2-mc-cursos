@@ -24,5 +24,11 @@ public class Inscripcion {
     private Date fechaInscripcion;
 
     private Boolean estaInscrito;
+
+    // Se marca al solicitar/emitir el certificado del curso
+    private Boolean completado = false;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date fechaCompletado;
 }
 

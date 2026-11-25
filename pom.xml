@@ -15,7 +15,20 @@
 	<description>Microservicio de Cursos para Certifika2</description>
 	<properties>
 		<java.version>17</java.version>
+		<aws.sdk.version>2.25.0</aws.sdk.version>
 	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<!-- BOM del AWS SDK v2: alinea las versiones de todos los clientes AWS -->
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>${aws.sdk.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -28,6 +41,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+		<!-- Productor de eventos hacia Amazon Kinesis Data Streams -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>kinesis</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.mysql</groupId>

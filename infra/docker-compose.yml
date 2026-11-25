@@ -1,0 +1,24 @@
+# Infraestructura local de streaming para certificados (Kinesis + Firehose + S3)
+# Levantar con:  docker compose -f infra/docker-compose.yml up -d
+services:
+  localstack:
+    # Versión fijada: las imágenes más nuevas de LocalStack pueden exigir auth token.
+    image: localstack/localstack:3.8
+    container_name: certifika2-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=kinesis,firehose,s3,iam,sts
+      - AWS_DEFAULT_REGION=us-east-1
+      - DEBUG=0
+    volumes:
+      - ./localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "bash", "-c", "awslocal kinesis describe-stream-summary --stream-name certifika2-certificados-solicitados"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  localstack-data:

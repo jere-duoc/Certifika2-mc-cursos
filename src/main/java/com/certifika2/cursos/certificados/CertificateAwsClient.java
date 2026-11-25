@@ -32,6 +32,7 @@ public class CertificateAwsClient {
     private final software.amazon.awssdk.auth.credentials.AwsCredentialsProvider credentials;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(4)).build();
 
+    @org.springframework.beans.factory.annotation.Autowired
     public CertificateAwsClient(ObjectMapper mapper,
             @Value("${AWS_REGION:us-east-1}") String region,
             @Value("${app.certificados.kinesis-endpoint:}") String kinesisEndpoint,

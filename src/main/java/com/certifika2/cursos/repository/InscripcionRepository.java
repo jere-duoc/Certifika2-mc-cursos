@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface InscripcionRepository extends JpaRepository<Inscripcion, Long> {
     List<Inscripcion> findByIdCurso(Long idCurso);
     List<Inscripcion> findByIdUsuario(String idUsuario);
+    List<Inscripcion> findByNotaDemoIsNotNull(org.springframework.data.domain.Pageable pageable);
     Optional<Inscripcion> findByIdCursoAndIdUsuario(Long idCurso, String idUsuario);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)

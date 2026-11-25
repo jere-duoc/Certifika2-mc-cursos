@@ -61,7 +61,8 @@ public class CertificadoSolicitudService {
         solicitud.setProximoIntento(solicitud.getFechaSolicitud());
         try {
             solicitud.setPayload(mapper.writeValueAsString(new Evento(1, eventId, alumno, curso.getIdCurso(),
-                    curso.getCodigo(), curso.getNombreCurso(), curso.getNivelCurso(), formato,
+                    curso.getCodigo(), "DEMO".equals(inscripcion.getCompletadoPor()) ? "DEMO · " + curso.getNombreCurso() : curso.getNombreCurso(),
+                    "DEMO".equals(inscripcion.getCompletadoPor()) ? "Demostración · Nota de ejemplo: " + inscripcion.getNotaDemo() : curso.getNivelCurso(), formato,
                     inscripcion.getFechaCompletado(), solicitud.getFechaSolicitud())));
         } catch (com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalStateException(ex); }
         solicitudes.save(solicitud);

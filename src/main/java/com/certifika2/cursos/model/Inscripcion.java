@@ -28,5 +28,8 @@ public class Inscripcion {
     // Completion is approved by the course owner or an administrator, never by requesting a file.
     private java.time.Instant fechaCompletado;
     private String completadoPor;
+    // Explicitly synthetic grades for the presentation flow.
+    private Double notaDemo;
+    private java.time.Instant fechaDemo;
 }
 
